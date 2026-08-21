@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+.case-notes{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}.case-notes>b{font:10px 'DM Mono';letter-spacing:1px;color:var(--blue)}.case-notes ul{margin:9px 0 0;padding-left:17px;color:#aebfc4;font-size:12px}.case-notes li+li{margin-top:5px}
 header .icon-btn{width:40px;height:40px;padding:0;font-size:19px;display:grid;place-items:center}
 header .icon-btn{width:46px;height:46px;font-size:23px;border-radius:11px}
 dialog#settings label.switch{display:flex!important;align-items:center!important;min-height:36px;gap:10px}
