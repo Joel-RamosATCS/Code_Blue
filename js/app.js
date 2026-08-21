@@ -124,6 +124,8 @@ async function chooseTriage(choice) {
   state.completed++;
   displayScore();
   $('#analysisText').textContent=patient.educationalReason;
+  // The button is disabled only while advancing; make it ready for this result screen.
+  $('#nextBtn').disabled=false;
   $('#result').hidden=false;
   $('#nextBtn').textContent=state.completed===10?'View Shift Summary →':'Next Patient →';
   if(AI.available) {
