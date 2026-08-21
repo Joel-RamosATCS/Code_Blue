@@ -68,6 +68,18 @@ function hintFor(patient) {
   if (patient.systolicBP < 95) flags.push('blood pressure');
   return flags.length ? `Look closely at ${flags.join(', ')} in this fictional case.` : 'Consider the complete scenario; one number does not tell the whole story.';
 }
+function caseNotes(patient) {
+  const notes = [];
+  const notableVitals = [];
+  if (patient.spo2 < 94) notableVitals.push('oxygen saturation');
+  if (patient.heartRate > 110 || patient.heartRate < 50) notableVitals.push('heart rate');
+  if (patient.respiratoryRate > 22 || patient.respiratoryRate < 10) notableVitals.push('breathing rate');
+  if (patient.systolicBP < 95) notableVitals.push('blood pressure');
+  notes.push(`Symptoms to compare: ${patient.symptoms.join(', ')}.`);
+  notes.push(notableVitals.length ? `Notable fictional observations: ${notableVitals.join(', ')}.` : 'The observations are generally steady in this fictional scenario.');
+  notes.push(`The full picture leads to the simulated ${patient.correctTriage} classification.`);
+  return notes;
+}
 function loadCase() {
   if (state.finished) return;
   if (state.completed === 10) return finishShift();
@@ -80,8 +92,6 @@ function loadCase() {
     requestAnimationFrame(() => card.classList.add('patient-arrival'));
   });
   $('#result').hidden = true;
-  $('#answer').textContent = '';
-  $('#attendingQuestion').value = '';
   $$('[data-triage]').forEach(button => { button.disabled=false; button.removeAttribute('aria-pressed'); });
   $('#caseNum').textContent = state.completed + 1;
   $('#caseTitle').textContent = 'Incoming patient';
@@ -140,6 +150,7 @@ async function chooseTriage(choice) {
   state.completed++;
   displayScore();
   $('#analysisText').textContent=patient.educationalReason;
+  $('#caseNotes').innerHTML=caseNotes(patient).map(note => `<li>${note}</li>`).join('');
   // The button is disabled only while advancing; make it ready for this result screen.
   $('#nextBtn').disabled=false;
   $('#result').hidden=false;
@@ -187,7 +198,6 @@ $('#settingsBtn').addEventListener('click',()=>$('#settings').showModal());
 $('#muteBtn').addEventListener('click',()=>{AudioFX.muted=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
 $('#soundToggle').addEventListener('change',()=>{AudioFX.muted=!$('#soundToggle').checked;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
 $('#resetBtn').addEventListener('click',()=>{Storage.reset();progress=Storage.get();AudioFX.muted=progress.settings.muted;renderSavedProgress();$('#settings').close();});
-$('#askBtn').addEventListener('click',async()=>{const question=$('#attendingQuestion').value.trim();if(!question)return;$('#answer').textContent='Thinking…';try{$('#answer').textContent=await AI.ask(`Case: ${JSON.stringify(state.current)}. Question: ${question}`)}catch{$('#answer').textContent='Interactive case questions are available during supported demonstrations.'}});
 document.addEventListener('keydown',event=>{if(!$('#game').classList.contains('active')||event.target.tagName==='INPUT')return;const choice={1:'stable',2:'urgent',3:'emergency'}[event.key];if(choice)chooseTriage(choice);});
 $$('a[href^="#"]').forEach(link=>link.addEventListener('click',event=>{const target=link.getAttribute('href');if($(target)){event.preventDefault();showPage(target);history.replaceState(null,'',target);}}));
 ['difficulty','hints','dynamic'].forEach(id=>$('#'+id).addEventListener('change',saveSettings));
