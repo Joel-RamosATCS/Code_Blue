@@ -64,6 +64,10 @@ function loadCase() {
   state.current = patient;
   state.locked = false;
   state.advancing = false;
+  document.querySelectorAll('.patient-card, .vitals').forEach(card => {
+    card.classList.remove('patient-arrival');
+    requestAnimationFrame(() => card.classList.add('patient-arrival'));
+  });
   $('#result').hidden = true;
   $('#answer').textContent = '';
   $('#attendingQuestion').value = '';
