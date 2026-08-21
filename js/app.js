@@ -187,4 +187,4 @@ AudioFX.muted=progress.settings.muted;
 $('#muteBtn').textContent=AudioFX.muted?'◔':'◖';
 $('#soundToggle').checked=!AudioFX.muted;
 renderSavedProgress();
-AI.check();
+AI.check().then(available => { $('#dynamicOption').hidden = !available; });
