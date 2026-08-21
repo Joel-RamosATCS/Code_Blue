@@ -26,3 +26,8 @@ const patients = [
 ['326',50,['Painful urination','Low fever'],'Symptoms started yesterday; patient is drinking fluids.',96,98,100.8,126,80,18,'urgent','Ongoing symptoms with fever are categorized for prompt evaluation in this fictional case.'],
 ['071',33,['Small finger cut'],'Bleeding stopped; patient cleaned it and feels well.',70,99,98.2,114,70,14,'stable','The bleeding has stopped and all fictional observations are steady.']
 ].map(([id,age,symptoms,scenario,heartRate,spo2,temperature,systolicBP,diastolicBP,respiratoryRate,correctTriage,educationalReason],index)=>({id,age,symptoms,scenario,heartRate,spo2,temperature,systolicBP,diastolicBP,respiratoryRate,correctTriage,educationalReason,difficulty:index%5===0||['146','417','098','192','284','410','129','223','326'].includes(id)?'codeblue':index%3===0?'student':'resident'}));
+const triageLabel = { stable:'Stable', urgent:'Urgent', emergency:'Emergency' };
+patients.forEach(patient => {
+  /* Built-in feedback stays useful when the optional local enhancement is unavailable. */
+  patient.educationalReason += ` This is why the fictional case is classified as ${triageLabel[patient.correctTriage]}, not as a diagnosis or treatment recommendation.`;
+});
