@@ -6,7 +6,7 @@ let state;
 
 function freshState(queue) {
   return { score:0, streak:0, longest:0, completed:0, correct:0, times:[], queue,
-    byLevel:{stable:[0,0],urgent:[0,0],emergency:[0,0]}, current:null, startedAt:0, locked:false, timer:null };
+    byLevel:{stable:[0,0],urgent:[0,0],emergency:[0,0]}, current:null, startedAt:0, locked:false, advancing:false, finished:false, timer:null };
 }
 function showPage(id) {
   $$('.page').forEach(page => page.classList.remove('active'));
@@ -22,8 +22,9 @@ function casePool() {
   return patients;
 }
 function makeQueue() {
-  const pool = shuffled(casePool());
-  return [...pool, ...shuffled(patients)].slice(0,10); // always supplies ten different cases where possible
+  const unique = new Map();
+  [...shuffled(casePool()), ...shuffled(patients)].forEach(patient => unique.set(patient.id, patient));
+  return [...unique.values()].slice(0,10); // Unique IDs prevent repeat patients in one normal shift.
 }
 function renderSavedProgress() {
   $('#savedHigh').textContent = progress.highScore || 0;
@@ -57,10 +58,12 @@ function hintFor(patient) {
   return flags.length ? `Look closely at ${flags.join(', ')} in this fictional case.` : 'Consider the complete scenario; one number does not tell the whole story.';
 }
 function loadCase() {
+  if (state.finished) return;
   if (state.completed === 10) return finishShift();
   const patient = state.queue[state.completed];
   state.current = patient;
   state.locked = false;
+  state.advancing = false;
   $('#result').hidden = true;
   $('#answer').textContent = '';
   $('#attendingQuestion').value = '';
@@ -130,7 +133,10 @@ async function chooseTriage(choice) {
   }
 }
 function finishShift() {
-  const accuracy=Math.round(state.correct/10*100);
+  if (state.finished) return;
+  state.finished = true;
+  clearInterval(state.timer);
+  const accuracy=Math.round(state.correct/state.completed*100);
   const average=Math.round(state.times.reduce((sum,time)=>sum+time,0)/state.times.length);
   $('#finalScore').textContent=state.score;
   $('#finalAccuracy').textContent=accuracy+'%';
@@ -153,7 +159,12 @@ function saveSettings() {
 $$('[data-triage]').forEach(button=>button.addEventListener('click',()=>chooseTriage(button.dataset.triage)));
 $('#startBtn').addEventListener('click',startShift);
 $('#newShiftBtn').addEventListener('click',startShift);
-$('#nextBtn').addEventListener('click',loadCase);
+$('#nextBtn').addEventListener('click',()=>{
+  if (state.advancing || state.finished) return;
+  state.advancing=true;
+  $('#nextBtn').disabled=true;
+  loadCase();
+});
 $('#settingsBtn').addEventListener('click',()=>$('#settings').showModal());
 $('#muteBtn').addEventListener('click',()=>{AudioFX.muted=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
 $('#resetBtn').addEventListener('click',()=>{Storage.reset();progress=Storage.get();AudioFX.muted=progress.settings.muted;renderSavedProgress();$('#settings').close();});
