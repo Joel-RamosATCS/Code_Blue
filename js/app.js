@@ -6,7 +6,7 @@ let state;
 
 function freshState(queue) {
   return { score:0, streak:0, longest:0, completed:0, correct:0, times:[], queue,
-    byLevel:{stable:[0,0],urgent:[0,0],emergency:[0,0]}, current:null, startedAt:0, locked:false, advancing:false, finished:false, timer:null };
+    byLevel:{stable:[0,0],urgent:[0,0],emergency:[0,0]}, current:null, caseToken:0, startedAt:0, locked:false, advancing:false, finished:false, timer:null };
 }
 function showPage(id) {
   $$('.page').forEach(page => page.classList.remove('active'));
@@ -45,15 +45,23 @@ function displayScore() {
   $('#score').textContent = state.score;
   $('#streak').textContent = state.streak;
 }
+function renderTextList(element, items) {
+  element.replaceChildren(...items.map(item => {
+    const listItem = document.createElement('li');
+    listItem.textContent = String(item);
+    return listItem;
+  }));
+}
 async function startShift() {
   state = freshState(makeQueue());
+  const activeShift = state;
   showPage('#game');
   loadCase();
   /* Dynamic generation is deliberately a quiet enhancement: the built-in case appears immediately. */
   if ($('#dynamic').checked && AI.available) {
     try {
       const generated = await AI.case();
-      if (generated && !state.locked && state.completed === 0) { state.queue[0] = generated; loadCase(); }
+      if (generated && state === activeShift && !state.locked && state.completed === 0) { state.queue[0] = generated; loadCase(); }
     } catch { /* Valid built-in data remains in use. */ }
   }
 }
@@ -85,8 +93,8 @@ function loadCase() {
   if (state.completed === 10) return finishShift();
   const patient = state.queue[state.completed];
   state.current = patient;
+  state.caseToken++;
   state.locked = false;
-  state.advancing = false;
   document.querySelectorAll('.patient-card, .vitals').forEach(card => {
     card.classList.remove('patient-arrival');
     requestAnimationFrame(() => card.classList.add('patient-arrival'));
@@ -97,7 +105,7 @@ function loadCase() {
   $('#caseTitle').textContent = 'Incoming patient';
   $('#patientId').textContent = '#' + patient.id;
   $('#patientAge').textContent = patient.age + ' years';
-  $('#symptoms').innerHTML = patient.symptoms.map(item => `<li>${item}</li>`).join('');
+  renderTextList($('#symptoms'), patient.symptoms);
   $('#scenario').textContent = `“${patient.scenario}”`;
   $('#arrival').textContent = ['just now','4 minutes ago','9 minutes ago','14 minutes ago'][state.completed % 4];
   const displayVitals = [
@@ -117,9 +125,10 @@ function loadCase() {
   updateTimer();
 }
 function updateTimer() {
-  const seconds=(Date.now()-state.startedAt)/1000;
+  const seconds=Math.max(0,(Date.now()-state.startedAt)/1000);
   const limit=$('#difficulty').value === 'codeblue' ? 25 : 45;
-  $('#timerText').textContent=`00:${String(Math.floor(seconds)).padStart(2,'0')}`;
+  const remaining=Math.max(0,Math.ceil(limit-seconds));
+  $('#timerText').textContent=`00:${String(remaining).padStart(2,'0')}`;
   $('#timerFill').style.width=Math.max(0,100-seconds/limit*100)+'%';
   if (seconds >= limit && !state.locked) chooseTriage('timeout');
 }
@@ -128,7 +137,9 @@ async function chooseTriage(choice) {
   state.locked=true;
   clearInterval(state.timer);
   const patient=state.current;
-  const elapsed=(Date.now()-state.startedAt)/1000;
+  const activeShift=state;
+  const caseToken=state.caseToken;
+  const elapsed=Math.max(0,(Date.now()-state.startedAt)/1000);
   const correct=choice===patient.correctTriage;
   state.times.push(elapsed);
   state.byLevel[patient.correctTriage][1]++;
@@ -148,16 +159,17 @@ async function chooseTriage(choice) {
   $('#resultTitle').textContent=choice==='timeout'?'Time elapsed.':'Review the clues.';
   }
   state.completed++;
+  state.advancing=false;
   displayScore();
   $('#analysisText').textContent=patient.educationalReason;
-  $('#caseNotes').innerHTML=caseNotes(patient).map(note => `<li>${note}</li>`).join('');
+  renderTextList($('#caseNotes'), caseNotes(patient));
   // The button is disabled only while advancing; make it ready for this result screen.
   $('#nextBtn').disabled=false;
   $('#result').hidden=false;
   $('#nextBtn').textContent=state.completed===10?'View Shift Summary →':'Next Patient →';
   if(AI.available) {
     AI.ask(`Case: ${JSON.stringify(patient)}. The player chose ${choice}. Give a concise, 2–4 sentence Case Analysis.`)
-      .then(text=>{if(text && state.current===patient) $('#analysisText').textContent=text;})
+      .then(text=>{if(text && state===activeShift && state.caseToken===caseToken && state.current===patient) $('#analysisText').textContent=text;})
       .catch(()=>{});
   }
 }
@@ -165,8 +177,8 @@ function finishShift() {
   if (state.finished) return;
   state.finished = true;
   clearInterval(state.timer);
-  const accuracy=Math.round(state.correct/state.completed*100);
-  const average=Math.round(state.times.reduce((sum,time)=>sum+time,0)/state.times.length);
+  const accuracy=Math.min(100,Math.max(0,Math.round(state.correct/Math.max(1,state.completed)*100)));
+  const average=Math.round(state.times.reduce((sum,time)=>sum+time,0)/Math.max(1,state.times.length));
   $('#finalScore').textContent=state.score;
   $('#finalAccuracy').textContent=accuracy+'%';
   $('#finalStreak').textContent=state.longest;
@@ -195,10 +207,10 @@ $('#nextBtn').addEventListener('click',()=>{
   loadCase();
 });
 $('#settingsBtn').addEventListener('click',()=>$('#settings').showModal());
-$('#muteBtn').addEventListener('click',()=>{AudioFX.muted=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
+$('#muteBtn').addEventListener('click',()=>{AudioFX.muted=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';$('#soundToggle').checked=!AudioFX.muted;saveSettings();});
 $('#soundToggle').addEventListener('change',()=>{AudioFX.muted=!$('#soundToggle').checked;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
-$('#resetBtn').addEventListener('click',()=>{Storage.reset();progress=Storage.get();AudioFX.muted=progress.settings.muted;renderSavedProgress();$('#settings').close();});
-document.addEventListener('keydown',event=>{if(!$('#game').classList.contains('active')||event.target.tagName==='INPUT')return;const choice={1:'stable',2:'urgent',3:'emergency'}[event.key];if(choice)chooseTriage(choice);});
+$('#resetBtn').addEventListener('click',()=>{Storage.reset();progress=Storage.get();$('#difficulty').value=progress.settings.difficulty;$('#hints').checked=progress.settings.hints;$('#dynamic').checked=progress.settings.dynamic;AudioFX.muted=progress.settings.muted;$('#soundToggle').checked=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';renderSavedProgress();$('#settings').close();});
+document.addEventListener('keydown',event=>{if(!$('#game').classList.contains('active')||$('#settings').open||event.target.closest('input, select, textarea, [contenteditable="true"]'))return;const choice={1:'stable',2:'urgent',3:'emergency'}[event.key];if(choice)chooseTriage(choice);});
 $$('a[href^="#"]').forEach(link=>link.addEventListener('click',event=>{const target=link.getAttribute('href');if($(target)){event.preventDefault();showPage(target);history.replaceState(null,'',target);}}));
 ['difficulty','hints','dynamic'].forEach(id=>$('#'+id).addEventListener('change',saveSettings));
 $('#difficulty').value=progress.settings.difficulty;
@@ -209,3 +221,5 @@ $('#muteBtn').textContent=AudioFX.muted?'◔':'◖';
 $('#soundToggle').checked=!AudioFX.muted;
 renderSavedProgress();
 AI.check().then(available => { $('#dynamicOption').hidden = !available; });
+const requestedPage = ['#home','#learn','#how','#about'].includes(window.location.hash) ? window.location.hash : '#home';
+if (requestedPage !== '#home') showPage(requestedPage);
