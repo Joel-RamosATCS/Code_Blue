@@ -22,9 +22,20 @@ function casePool() {
   return patients;
 }
 function makeQueue() {
-  const unique = new Map();
-  [...shuffled(casePool()), ...shuffled(patients)].forEach(patient => unique.set(patient.id, patient));
-  return [...unique.values()].slice(0,10); // Unique IDs prevent repeat patients in one normal shift.
+  const pool = casePool();
+  const used = new Set();
+  const take = (level, count) => shuffled(pool.filter(patient => patient.correctTriage === level && !used.has(patient.id))).slice(0,count);
+  const add = patientsToAdd => patientsToAdd.forEach(patient => used.add(patient.id));
+  // Start with an engaging emergency case, then deliberately mix all three simulated categories.
+  const opening = pool.find(patient => patient.id === '021') || shuffled(pool.filter(patient => patient.correctTriage === 'emergency'))[0];
+  const queue = opening ? [opening] : [];
+  if (opening) used.add(opening.id);
+  const stable = take('stable',3); add(stable);
+  const urgent = take('urgent',3); add(urgent);
+  const emergency = take('emergency',2); add(emergency);
+  queue.push(...shuffled([...stable,...urgent,...emergency]));
+  const remaining = shuffled(pool.filter(patient => !used.has(patient.id))).slice(0,10-queue.length);
+  return [...queue,...remaining].slice(0,10); // Unique IDs prevent repeats within one shift.
 }
 function renderSavedProgress() {
   $('#savedHigh').textContent = progress.highScore || 0;
