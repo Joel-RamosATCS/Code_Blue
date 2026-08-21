@@ -33,6 +33,9 @@ function renderSavedProgress() {
 function displayScore() {
   $('#score').textContent = state.score;
   $('#streak').textContent = state.streak;
+  $('#score').classList.remove('score-pop');
+  $('#streak').classList.remove('score-pop');
+  requestAnimationFrame(()=>{ $('#score').classList.add('score-pop'); $('#streak').classList.add('score-pop'); });
 }
 async function startShift() {
   state = freshState(makeQueue());
@@ -64,6 +67,9 @@ function loadCase() {
   state.current = patient;
   state.locked = false;
   state.advancing = false;
+  $('#patientCard').classList.remove('patient-arrival');
+  $('#vitalsCard').classList.remove('patient-arrival');
+  requestAnimationFrame(()=>{ $('#patientCard').classList.add('patient-arrival'); $('#vitalsCard').classList.add('patient-arrival'); });
   $('#result').hidden = true;
   $('#answer').textContent = '';
   $('#attendingQuestion').value = '';
@@ -169,6 +175,7 @@ $('#nextBtn').addEventListener('click',()=>{
 });
 $('#settingsBtn').addEventListener('click',()=>$('#settings').showModal());
 $('#muteBtn').addEventListener('click',()=>{AudioFX.muted=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
+$('#soundToggle').addEventListener('change',()=>{AudioFX.muted=!$('#soundToggle').checked;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
 $('#resetBtn').addEventListener('click',()=>{Storage.reset();progress=Storage.get();AudioFX.muted=progress.settings.muted;renderSavedProgress();$('#settings').close();});
 $('#askBtn').addEventListener('click',async()=>{const question=$('#attendingQuestion').value.trim();if(!question)return;$('#answer').textContent='Thinking…';try{$('#answer').textContent=await AI.ask(`Case: ${JSON.stringify(state.current)}. Question: ${question}`)}catch{$('#answer').textContent='Interactive case questions are available during supported demonstrations.'}});
 document.addEventListener('keydown',event=>{if(!$('#game').classList.contains('active')||event.target.tagName==='INPUT')return;const choice={1:'stable',2:'urgent',3:'emergency'}[event.key];if(choice)chooseTriage(choice);});
@@ -179,5 +186,6 @@ $('#hints').checked=progress.settings.hints;
 $('#dynamic').checked=progress.settings.dynamic;
 AudioFX.muted=progress.settings.muted;
 $('#muteBtn').textContent=AudioFX.muted?'◔':'◖';
+$('#soundToggle').checked=!AudioFX.muted;
 renderSavedProgress();
 AI.check();
