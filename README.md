@@ -15,7 +15,7 @@ This is a fictional simulation only. It is not medical advice, a diagnostic tool
 - Keyboard controls: `1` Stable, `2` Urgent, `3` Emergency
 - Animated ECG, responsive dashboard, accessible focus behavior, reduced-motion support, and generated Web Audio sounds
 - A clearly commented simplified educational urgency-score function
-- Optional local Ollama enhancement for Case Analysis, questions, and experimental dynamic cases; built-in explanations always remain the fallback
+- Optional local Ollama enhancement for Case Analysis and experimental dynamic cases; built-in explanations always remain the fallback
 
 ## Computer science concepts
 
@@ -36,6 +36,10 @@ code-blue/
 ├── js/storage.js
 └── assets/
 ```
+
+## Run normally
+
+Open `index.html` in a modern browser. No installation, build command, account, server, or local model is required.
 
 ## Deploy to GitHub Pages
 
