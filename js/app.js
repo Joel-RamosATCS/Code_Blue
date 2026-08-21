@@ -100,6 +100,7 @@ function updateTimer() {
   const limit=$('#difficulty').value === 'codeblue' ? 25 : 45;
   $('#timerText').textContent=`00:${String(Math.floor(seconds)).padStart(2,'0')}`;
   $('#timerFill').style.width=Math.max(0,100-seconds/limit*100)+'%';
+  if (seconds >= limit && !state.locked) chooseTriage('timeout');
 }
 async function chooseTriage(choice) {
   if (state.locked) return;
@@ -123,7 +124,7 @@ async function chooseTriage(choice) {
   } else {
     state.streak=0; AudioFX.wrong();
     $('#resultBadge').textContent='× INCORRECT · 0 POINTS'; $('#resultBadge').className='bad';
-    $('#resultTitle').textContent='Review the clues.';
+  $('#resultTitle').textContent=choice==='timeout'?'Time elapsed.':'Review the clues.';
   }
   state.completed++;
   displayScore();
@@ -173,6 +174,7 @@ $('#nextBtn').addEventListener('click',()=>{
 });
 $('#settingsBtn').addEventListener('click',()=>$('#settings').showModal());
 $('#muteBtn').addEventListener('click',()=>{AudioFX.muted=!AudioFX.muted;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
+$('#soundToggle').addEventListener('change',()=>{AudioFX.muted=!$('#soundToggle').checked;$('#muteBtn').textContent=AudioFX.muted?'◔':'◖';saveSettings();});
 $('#resetBtn').addEventListener('click',()=>{Storage.reset();progress=Storage.get();AudioFX.muted=progress.settings.muted;renderSavedProgress();$('#settings').close();});
 $('#askBtn').addEventListener('click',async()=>{const question=$('#attendingQuestion').value.trim();if(!question)return;$('#answer').textContent='Thinking…';try{$('#answer').textContent=await AI.ask(`Case: ${JSON.stringify(state.current)}. Question: ${question}`)}catch{$('#answer').textContent='Interactive case questions are available during supported demonstrations.'}});
 document.addEventListener('keydown',event=>{if(!$('#game').classList.contains('active')||event.target.tagName==='INPUT')return;const choice={1:'stable',2:'urgent',3:'emergency'}[event.key];if(choice)chooseTriage(choice);});
@@ -183,5 +185,6 @@ $('#hints').checked=progress.settings.hints;
 $('#dynamic').checked=progress.settings.dynamic;
 AudioFX.muted=progress.settings.muted;
 $('#muteBtn').textContent=AudioFX.muted?'◔':'◖';
+$('#soundToggle').checked=!AudioFX.muted;
 renderSavedProgress();
 AI.check();
